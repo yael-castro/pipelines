@@ -1,4 +1,4 @@
-.PHONY: lineal pipeline
+.PHONY: lineal pipeline semaphore benchmark benchmark_lineal benchmark_pipeline benchmark_semaphore
 
 lineal:
 	go build -tags lineal -o ./build/lineal cmd/main.go
@@ -6,8 +6,17 @@ lineal:
 pipeline:
 	go build -tags pipeline -o ./build/pipeline cmd/main.go
 
-buffered:
-	go build -tags buffered -o ./build/buffered cmd/main.go
+semaphore:
+	go build -tags semaphore -o ./build/semaphore cmd/main.go
 
-pprof:
-	go tool pprof -http=:8080 cpu.pprof
+benchmark:
+	go test ./internal/logic -o "$(t).test" -run ^# -tags "$(t)" -bench . -benchmem -count="$(c)" -timeout 120m -v
+
+benchmark_lineal:
+	make benchmark t=lineal c=10
+
+benchmark_pipeline:
+	make benchmark t=pipeline c=10
+
+benchmark_semaphore:
+	make benchmark t=semaphore c=10

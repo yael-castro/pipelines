@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
+	"github.com/yael-castro/pipelines/internal/command"
 	"github.com/yael-castro/pipelines/internal/logic"
 	"github.com/yael-castro/pipelines/internal/repository"
+	"log"
 	"os"
 	"os/signal"
 	"runtime"
 )
 
 func main() {
-	// Limiting CPUs that can be executing simultaneously
+	// Limiting CPUs that can be using simultaneously
 	const threads = 1
 	_ = runtime.GOMAXPROCS(threads)
 
@@ -21,12 +23,12 @@ func main() {
 	defer stop()
 
 	// Building executable command
-	l := logic.New(repository.New())
+	cmd := command.New(logic.New(repository.New()))
 
 	// Executing business logic
-	println("Calculating profit... ")
+	log.Println("Calculating profit... ")
 
-	_ = l.CalculateProfit(ctx)
+	_ = cmd(ctx)
 
-	println("Done!")
+	log.Println("Done!")
 }

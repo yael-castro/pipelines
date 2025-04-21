@@ -1,20 +1,11 @@
 package logic
 
-import (
-	"context"
-	"github.com/yael-castro/pipelines/internal/repository"
-)
-
-func New(repo repository.Repository) Logic {
+func New(repo Repository) Logic {
 	return logic{
 		Repository: repo,
 	}
 }
 
-type Logic interface {
-	CalculateProfit(context.Context) error
-}
-
 type logic struct {
-	repository.Repository
+	Repository
 }

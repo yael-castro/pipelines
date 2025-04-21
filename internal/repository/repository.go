@@ -2,24 +2,23 @@ package repository
 
 import (
 	"context"
+	"github.com/yael-castro/pipelines/internal/logic"
+	"log"
 	"strconv"
 	"time"
 )
 
 const latencyPerOp = 10 * time.Millisecond
 
-func New() Repository {
-	return repository{}
+func New() logic.Repository {
+	return repository{
+		logger: log.Default(),
+	}
 }
 
-type Repository interface {
-	GetClosings(context.Context, ClosingStatus) (Closings, error)
-	GetCosts(context.Context, time.Time, time.Time) (float64, error)
-	GetSales(context.Context, time.Time, time.Time) (Sales, error)
-	SaveProfit(context.Context, ClosingID, float64) error
+type repository struct {
+	logger *log.Logger
 }
-
-type repository struct{}
 
 func (repository) GetCosts(ctx context.Context, start, end time.Time) (float64, error) {
 	timer := time.NewTimer(latencyPerOp)
@@ -34,7 +33,7 @@ func (repository) GetCosts(ctx context.Context, start, end time.Time) (float64, 
 	}
 }
 
-func (repository) GetSales(ctx context.Context, start, end time.Time) (Sales, error) {
+func (repository) GetSales(ctx context.Context, start, end time.Time) (logic.Sales, error) {
 	timer := time.NewTimer(latencyPerOp)
 	defer timer.Stop()
 
@@ -45,14 +44,14 @@ func (repository) GetSales(ctx context.Context, start, end time.Time) (Sales, er
 	}
 
 	const defaultSales = 100
-	sales := make(Sales, 0, defaultSales)
+	sales := make(logic.Sales, 0, defaultSales)
 
 	now := time.Now()
 
 	for range defaultSales {
 		const defaultValue = 100
 
-		sales = append(sales, Sale{
+		sales = append(sales, logic.Sale{
 			Date:  now,
 			Value: defaultValue,
 		})
@@ -61,7 +60,7 @@ func (repository) GetSales(ctx context.Context, start, end time.Time) (Sales, er
 	return sales, nil
 }
 
-func (repository) GetClosings(ctx context.Context, _ ClosingStatus) (Closings, error) {
+func (repository) GetClosings(ctx context.Context, _ logic.ClosingStatus) (logic.Closings, error) {
 	timer := time.NewTimer(latencyPerOp)
 	defer timer.Stop()
 
@@ -72,15 +71,15 @@ func (repository) GetClosings(ctx context.Context, _ ClosingStatus) (Closings, e
 	}
 
 	const defaultClosings = 10_000
-	closings := make(Closings, 0, defaultClosings)
+	closings := make(logic.Closings, 0, defaultClosings)
 
 	now := time.Now()
 	start := now.Add(-time.Hour)
 	end := now.Add(time.Hour)
 
 	for i := range defaultClosings {
-		closings = append(closings, Closing{
-			ID:    ClosingID(strconv.FormatInt(int64(i), 10)),
+		closings = append(closings, logic.Closing{
+			ID:    logic.ClosingID(strconv.FormatInt(int64(i), 10)),
 			Start: start,
 			End:   end,
 		})
@@ -89,7 +88,7 @@ func (repository) GetClosings(ctx context.Context, _ ClosingStatus) (Closings, e
 	return closings, nil
 }
 
-func (repository) SaveProfit(ctx context.Context, id ClosingID, profit float64) error {
+func (r repository) SaveProfit(ctx context.Context, id logic.ClosingID, profit float64) error {
 	timer := time.NewTimer(latencyPerOp)
 	defer timer.Stop()
 
@@ -99,5 +98,6 @@ func (repository) SaveProfit(ctx context.Context, id ClosingID, profit float64) 
 	case <-timer.C:
 	}
 
+	r.logger.Println("CLOSING ID:", id, "PROFIT:", profit)
 	return nil
 }

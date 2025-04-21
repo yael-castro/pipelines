@@ -1,18 +1,16 @@
-//go:build buffered
+//go:build semaphore
 
 package logic
 
 import (
 	"context"
-	"github.com/yael-castro/pipelines/internal/repository"
-	"log"
 	"sync"
 )
 
 const bufferSize = 500
 
 func (l logic) CalculateProfit(ctx context.Context) (err error) {
-	closings, err := l.GetClosings(ctx, repository.Open)
+	closings, err := l.GetClosings(ctx, Open)
 	if err != nil {
 		return
 	}
@@ -29,8 +27,8 @@ func (l logic) CalculateProfit(ctx context.Context) (err error) {
 	return
 }
 
-func (logic) closingChannel(closings []repository.Closing) <-chan repository.Closing {
-	closingsCh := make(chan repository.Closing)
+func (logic) closingChannel(closings []Closing) <-chan Closing {
+	closingsCh := make(chan Closing)
 
 	go func() {
 		defer close(closingsCh)
@@ -43,23 +41,21 @@ func (logic) closingChannel(closings []repository.Closing) <-chan repository.Clo
 	return closingsCh
 }
 
-func (l logic) salesPipeline(ctx context.Context, closingsCh <-chan repository.Closing) <-chan repository.Closing {
-	salesCh := make(chan repository.Closing)
+func (l logic) salesPipeline(ctx context.Context, closingsCh <-chan Closing) <-chan Closing {
+	salesCh := make(chan Closing)
 
 	go func() {
-		defer log.Println("SALES PIPELINE IS DONE!")
-
 		defer close(salesCh)
 
 		var wg sync.WaitGroup
-		semaphoreCh := make(chan struct{}, bufferSize)
+		trafficCh := make(chan struct{}, bufferSize)
 
 		for closing := range closingsCh {
-			semaphoreCh <- struct{}{}
+			trafficCh <- struct{}{}
 			wg.Add(1)
 			go func() {
 				defer func() {
-					<-semaphoreCh
+					<-trafficCh
 					wg.Done()
 				}()
 
@@ -79,23 +75,22 @@ func (l logic) salesPipeline(ctx context.Context, closingsCh <-chan repository.C
 	return salesCh
 }
 
-func (l logic) costsPipeline(ctx context.Context, closingsCh <-chan repository.Closing) <-chan repository.Closing {
-	costsCh := make(chan repository.Closing)
+func (l logic) costsPipeline(ctx context.Context, closingsCh <-chan Closing) <-chan Closing {
+	costsCh := make(chan Closing)
 
 	go func() {
-		defer log.Println("COST PIPELINE IS DONE!")
 		defer close(costsCh)
 
 		var wg sync.WaitGroup
-		semaphoreCh := make(chan struct{}, bufferSize)
+		trafficCh := make(chan struct{}, bufferSize)
 
 		for closing := range closingsCh {
-			semaphoreCh <- struct{}{}
+			trafficCh <- struct{}{}
 
 			wg.Add(1)
 			go func() {
 				defer func() {
-					<-semaphoreCh
+					<-trafficCh
 					wg.Done()
 				}()
 
@@ -115,15 +110,14 @@ func (l logic) costsPipeline(ctx context.Context, closingsCh <-chan repository.C
 	return costsCh
 }
 
-func (logic) profitPipeline(_ context.Context, closingsCh <-chan repository.Closing) <-chan repository.Closing {
-	profitCh := make(chan repository.Closing, bufferSize)
+func (logic) profitPipeline(_ context.Context, closingsCh <-chan Closing) <-chan Closing {
+	profitCh := make(chan Closing, bufferSize)
 
 	go func() {
-		defer log.Println("PROFIT PIPELINE IS DONE!")
 		defer close(profitCh)
 
 		for closing := range closingsCh {
-			closing.CalculateProfit()
+			closing.CalculateNetProfit()
 			profitCh <- closing
 		}
 	}()
@@ -131,29 +125,28 @@ func (logic) profitPipeline(_ context.Context, closingsCh <-chan repository.Clos
 	return profitCh
 }
 
-func (l logic) savePipeline(ctx context.Context, closingsCh <-chan repository.Closing) <-chan struct{} {
+func (l logic) savePipeline(ctx context.Context, closingsCh <-chan Closing) <-chan struct{} {
 	doneCh := make(chan struct{})
 
 	go func() {
 		defer func() {
-			log.Println("SAVE PIPELINE IS DONE!")
 			doneCh <- struct{}{}
 			close(doneCh)
 		}()
 
 		var wg sync.WaitGroup
-		semaphoreCh := make(chan struct{}, bufferSize)
+		trafficCh := make(chan struct{}, bufferSize)
 
 		for closing := range closingsCh {
-			semaphoreCh <- struct{}{}
+			trafficCh <- struct{}{}
 
 			wg.Add(1)
 			go func() {
 				defer func() {
 					wg.Done()
-					<-semaphoreCh
+					<-trafficCh
 				}()
-				_ = l.SaveProfit(ctx, closing.ID, closing.Profit)
+				_ = l.SaveProfit(ctx, closing.ID, closing.NetProfit)
 			}()
 		}
 
