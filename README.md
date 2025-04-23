@@ -1,29 +1,27 @@
 # Solving a real problem with pipelines and semaphores
-This repository is intended to show how I solve a real problem
-using the concurrent patterns **pipelines** and **semaphores**
-> ⚠️ Remember: the patterns are a conceptual idea more than a strict way to do something.
+In this repository I have **recreated/simulated** a problem I faced at work some time ago.
 
+Here I show three different ways to solve the problem:
+1. Linear approach (Less optimal solution)
+2. Using [pipelines](https://go.dev/blog/pipelines)
+3. Using [pipelines](https://go.dev/blog/pipelines) and semaphores (Most optimal solution)
+> ⚠️ Remember: the patterns are a conceptual idea more than a strict way to do something.
 ## Problem
 Calculate the `net profit` for each `closing` in a company's stores.
-
-> ⚠️ Some details have been modified to avoid revealing confidential information.
 ###### Context
-A company operates `stores`.
+A company operates `stores`
 
-Each store has multiple `closings` (accounting periods, such as monthly or quarterly closings).
+Each store has multiple `closings` (accounting periods, such as monthly or quarterly)
 
 For every `closing`, the company tracks:
 
-- `Sales` Revenue generated during the period.
-- `Operation costs` Expenses incurred to run the store during the period.
+- `sales` Revenue generated during the period.
+- `costs` Expenses incurred to run the store during the period.
 ###### Objective
-Compute the `net profit` for each `closing`, where:
-```text
-Net profit = Sales − Operation costs
-```
+Develop a process to calculate and store the `net profit` of each `close`, where `net profit = sales - costs`
+> ⚠️ Some details have been changed to avoid revealing confidential information but the problem remains the same.
 ## Solutions
-> ⚠️ I limited CPUs that can be using simultaneously to one for each solution
-### Lineal ([See the code](internal/logic/logic_lineal.go))
+### Linear ([See the code](internal/logic/logic_lineal.go))
 ###### How to run
 ```shell
 make lineal
@@ -55,7 +53,6 @@ time ./build/semaphore
 ```shell
 make benchmark_semaphore
 ```
-
 ## Resumen
 ###### Linear solution vs. Pipelines + Semaphores
 ```text
@@ -75,3 +72,7 @@ Logic_CalculateProfit   41.31Mi ± 0%   47.29Mi ± 0%  +14.48% (p=0.000 n=10)
                       │  allocs/op  │  allocs/op   vs base                │
 Logic_CalculateProfit   129.9k ± 0%   188.0k ± 1%  +44.70% (p=0.000 n=10)
 ```
+> ⚠️ The benchmarks were performed using only one logic CPU at a time.
+> ```go
+> _ = runtime.GOMAXPROCS(1)
+> ```
