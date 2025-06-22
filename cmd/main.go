@@ -5,7 +5,7 @@ import (
 	"github.com/yael-castro/pipelines/internal/command"
 	"github.com/yael-castro/pipelines/internal/logic"
 	"github.com/yael-castro/pipelines/internal/repository"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"runtime"
@@ -22,13 +22,16 @@ func main() {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer stop()
 
+	// Setting default logger
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	// Building executable command
 	cmd := command.New(logic.New(repository.New()))
 
 	// Executing business logic
-	log.Println("Calculating profit... ")
+	slog.InfoContext(ctx, "calculating_profit")
 
-	_ = cmd(ctx)
+	err := cmd(ctx)
 
-	log.Println("Done!")
+	slog.InfoContext(ctx, "done", "error", err)
 }
