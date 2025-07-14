@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/yael-castro/pipelines/internal/logic"
-	"log"
+	"log/slog"
 	"strconv"
 	"time"
 )
@@ -12,12 +12,12 @@ const latencyPerOp = 10 * time.Millisecond
 
 func New() logic.Repository {
 	return repository{
-		logger: log.Default(),
+		logger: slog.Default(),
 	}
 }
 
 type repository struct {
-	logger *log.Logger
+	logger *slog.Logger
 }
 
 func (repository) GetCosts(ctx context.Context, start, end time.Time) (float64, error) {
@@ -98,6 +98,6 @@ func (r repository) SaveProfit(ctx context.Context, id logic.ClosingID, profit f
 	case <-timer.C:
 	}
 
-	r.logger.Println("CLOSING ID:", id, "PROFIT:", profit)
+	r.logger.InfoContext(ctx, "save_profit", "closing_id", id, "profit", profit)
 	return nil
 }
