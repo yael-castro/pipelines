@@ -20,6 +20,11 @@ For every `closing`, the company tracks:
 ###### Objective
 Develop a process to calculate and store the `net profit` of each `close`, where `net profit = sales - costs`
 > ⚠️ Some details have been changed to avoid revealing confidential information but the problem remains the same.
+###### Limitations
+The process runs every 6 hours on weekdays, so it runs on AWS Lambda (EventBridge) to save costs, and as is well known,
+AWS Lambda has a maximum timeout of 15 minutes. So, the idea is not to exceed the timeout.
+[See how to determine the appropriate timeout value for a Lambda function](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html#configuration-timeout-use-cases)
+
 ## Solutions
 ### Linear ([See the code](internal/logic/logic_lineal.go))
 ###### How to run
